@@ -235,6 +235,70 @@ function pad(icon, tint, x, z) {
   m.receiveShadow = true;
   return m;
 }
+const heldCache = new Map();
+/**
+ * The speech bubble above an elf that shows what it is carrying.
+ * Presents are drawn the same way as on the order tickets, so the two are easy to compare.
+ */
+function heldTexture(it, taps) {
+  const key = JSON.stringify(it) + taps;
+  if (!heldCache.has(key)) heldCache.set(key, canvasTex(160, 144, (g) => {
+    g.shadowColor = "rgba(0,0,0,0.35)"; g.shadowBlur = 8; g.shadowOffsetY = 3;
+    g.fillStyle = "#fffaf0";
+    g.beginPath(); g.roundRect(10, 8, 140, 100, 24); g.fill();
+    g.beginPath(); g.moveTo(66, 106); g.lineTo(80, 132); g.lineTo(94, 106); g.closePath(); g.fill();
+    g.shadowColor = "transparent";
+    g.strokeStyle = "#8a5a36"; g.lineWidth = 4;
+    g.beginPath(); g.roundRect(10, 8, 140, 100, 24); g.stroke();
+    const emoji = (text, x, y, size) => {
+      g.font = `${size}px "Apple Color Emoji","Segoe UI Emoji","Noto Color Emoji",sans-serif`;
+      g.textAlign = "center"; g.textBaseline = "middle"; g.fillStyle = "#333";
+      g.fillText(text, x, y);
+    };
+    const boxAt = (x, y, w, h, fill, dashed) => {
+      g.fillStyle = fill; g.beginPath(); g.roundRect(x, y, w, h, 7); g.fill();
+      g.strokeStyle = dashed ? "#8a5a36" : "rgba(0,0,0,0.25)"; g.lineWidth = 3;
+      g.setLineDash(dashed ? [7, 5] : []); g.stroke(); g.setLineDash([]);
+    };
+    if (it.k === "toy") emoji(TOY_EMOJI[it.v], 80, 60, 64);
+    else if (it.k === "box") { boxAt(48, 34, 64, 52, CARD, true); }
+    else if (it.k === "paper") {
+      g.fillStyle = PAPER_HEX[it.v]; g.beginPath(); g.roundRect(34, 40, 92, 38, 19); g.fill();
+      g.fillStyle = "rgba(255,255,255,0.85)"; g.beginPath(); g.ellipse(112, 59, 9, 15, 0, 0, 7); g.fill();
+      g.fillStyle = "#c9b089"; g.beginPath(); g.ellipse(112, 59, 4, 7, 0, 0, 7); g.fill();
+    } else if (it.k === "ribbon" || it.k === "bow") {
+      g.save(); g.translate(16, -4);
+      g.fillStyle = it.k === "ribbon" ? "#e6ac1c" : "#d79a2b";
+      ICONS[it.k](g, "#fffaf0");
+      g.restore();
+    } else {
+      // a present: box on the left, its toy on the right
+      const wrapped = !!it.paper && !needsWrap(it, taps);
+      const x = 26, y = 40, w = 54, h = 50;
+      boxAt(x, y, w, h, CARD, !it.paper);
+      if (it.paper) {
+        // paper covers the box as far as it has been wrapped
+        const p = wrapped ? 1 : Math.max(0.25, (it.w || 0) / taps);
+        g.save(); g.beginPath(); g.rect(x, y + h * (1 - p), w, h * p); g.clip();
+        boxAt(x, y, w, h, PAPER_HEX[it.paper], false);
+        g.restore();
+      }
+      if (it.rib) { g.fillStyle = GOLD; g.fillRect(x + w / 2 - 6, y, 12, h); g.fillRect(x, y + h / 2 - 6, w, 12); }
+      if (it.bow) {
+        g.fillStyle = CREAM; g.strokeStyle = "#b98d3e"; g.lineWidth = 3;
+        for (const dx of [-13, 13]) { g.beginPath(); g.ellipse(x + w / 2 + dx, y - 5, 13, 9, dx > 0 ? -0.4 : 0.4, 0, 7); g.fill(); g.stroke(); }
+        g.beginPath(); g.arc(x + w / 2, y - 3, 6, 0, 7); g.fill(); g.stroke();
+      }
+      emoji(TOY_EMOJI[it.toy], 114, 60, 40);
+      if (it.paper && !wrapped) {
+        g.font = "800 15px system-ui, sans-serif"; g.textAlign = "center"; g.fillStyle = "#c0392b";
+        g.fillText("needs wrapping", 80, 98, 130);
+      }
+    }
+  }));
+  return heldCache.get(key);
+}
+
 function labelSprite(text, color) {
   const tex = canvasTex(256, 64, (g) => {
     g.font = "700 30px system-ui, sans-serif";
@@ -923,7 +987,25 @@ export class Workshop {
     for (const [i, h] of this.tileItems) if (!seen.has(i)) this.swap(h, h.group, null, 0);
     for (const [uid, e] of this.elves) {
       const holder = e.holder || (e.holder = { key: "", obj: null });
-      this.swap(holder, e.group, G?.h?.[uid] || null, 0.18, 0.76);
+      const item = G?.h?.[uid] || null;
+      this.swap(holder, e.group, item, 0.18, 0.76);
+      // speech bubble showing what is in the elf's hands
+      if (!e.bubble) {
+        e.bubble = sprite(null, 1, 2.78);
+        e.bubble.scale.set(1.15, 1.035, 1);
+        e.bubble.renderOrder = 12;
+        e.group.add(e.bubble);
+      }
+      e.bubble.visible = !!item;
+      if (item) {
+        const tex = heldTexture(item, taps);
+        if (e.bubble.material.map !== tex) {
+          e.bubble.material.map = tex;
+          e.bubble.material.needsUpdate = true;
+          const b = e.bubble;
+          this.anims.push({ t: 0, d: 0.2, step: (k) => b.scale.set(1.15 * (0.6 + 0.4 * k), 1.035 * (0.6 + 0.4 * k), 1) });
+        }
+      }
       e.holding = !!holder.obj;
     }
   }

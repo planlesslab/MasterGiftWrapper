@@ -24,10 +24,16 @@
 
 | What happened | Points |
 | --- | --- |
-| Correct present (right toy and paper) | +10 |
-| Every requested decoration is right too | +5 bonus |
-| Wrong or unfinished present | 0 |
-| Order runs out of time | 0 |
+| Toy in a box | +10 |
+| Wrapped in the right paper | +15 |
+| Wrapped, with the ribbon or bow the order asks for | +20 |
+| Wrapped, with both ribbon and bow | +25 |
+| Sent while more than half of the order's time is left | +3 speed tip |
+| Right toy and paper but wrong, missing or extra decorations | points for the toy and wrapping only (10 or 15) |
+| Wrong or unfinished present, on Normal and Chaos | −5 (the present is lost) |
+| Order runs out of time, on Normal and Chaos | −5 |
+| Wrong or unfinished present, on Easy | 0 (it is handed back) |
+| Order runs out of time, on Easy | 0 |
 
 When the timer reaches zero nothing more can be dispatched. The team score, and each elf's share of it, are shown at the end. The high score is remembered per difficulty.
 
@@ -97,7 +103,7 @@ Everything about the rules lives in [`js/rules.js`](js/rules.js):
 
 - `MAP` is the workshop floor plan, one letter per square.
 - `DIFFICULTY` sets wrap taps, order timers, how fast orders arrive and how many can wait.
-- `POINTS_CORRECT` and `POINTS_PERFECT` set the scoring.
+- `POINTS_BASE`, `POINTS_STEP` and `SPEED_TIP` set the scoring, and `penalty` in `DIFFICULTY` sets the points lost for mistakes.
 - `GAME_MS` is the length of a shift.
 
 | File | What it does |

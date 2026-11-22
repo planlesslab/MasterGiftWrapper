@@ -5,7 +5,7 @@ import { Workshop } from "./scene.js";
 import { Input } from "./input.js";
 import {
   COLS, SPAWNS, DIFFICULTY, GAME_MS, PAPER_HEX, TOY_EMOJI,
-  isSolid, tileIdx, newGame, normalise, tickOrders, applyAction, actionLabel, describeItem,
+  isSolid, tileIdx, newGame, orderPoints, normalise, tickOrders, applyAction, actionLabel, describeItem,
 } from "./rules.js";
 
 const $ = (id) => document.getElementById(id);
@@ -320,12 +320,13 @@ export class Game {
     if (fx.k === "serve") {
       SOUNDS.serve();
       this.scene.sendToSleigh(fx.gift, fx.tile);
-      this.popup(fx.tile, `+${fx.p}${fx.perfect ? " Perfect!" : ""}`, fx.perfect ? "gold" : "good");
+      this.popup(fx.tile, `+${fx.p}${fx.perfect ? " Perfect!" : fx.off ? " (decoration wrong)" : ""}${fx.fast ? " ⚡" : ""}`, fx.perfect ? "gold" : "good");
       $("hud-score").classList.remove("bump"); void $("hud-score").offsetWidth; $("hud-score").classList.add("bump");
     } else if (fx.k === "wrong") {
       SOUNDS.wrong();
-      this.popup(fx.tile, fx.why === "unfinished" ? "Wrap it first!" : "No order for that!", "bad");
+      this.popup(fx.tile, (fx.why === "unfinished" ? "Wrap it first!" : "No order for that!") + (fx.p ? ` −${fx.p}` : ""), "bad");
     } else if (fx.k === "miss") {
+      this.toast(fx.p ? `Order missed −${fx.p}` : "Order missed", "bad");
       SOUNDS.miss();
     } else if (fx.k === "order") {
       SOUNDS.order();
@@ -334,6 +335,17 @@ export class Game {
       if (fx.k === "no" && navigator.vibrate) navigator.vibrate(30);
     }
     if (fx.k === "wrap" || fx.k === "wrapped") this.scene.bump(fx.tile);
+  }
+
+  /** A message under the order tickets, for things that didn't happen at a station. */
+  toast(text, cls) {
+    const el = document.createElement("div");
+    el.className = `popup ${cls}`;
+    el.textContent = text;
+    el.style.left = "50%";
+    el.style.top = $("hud").offsetTop + $("hud").offsetHeight + 34 + "px";
+    $("popups").appendChild(el);
+    setTimeout(() => el.remove(), 1500);
   }
 
   popup(tile, text, cls) {
@@ -366,6 +378,9 @@ export class Game {
       if (o.bow) gift.appendChild(Object.assign(document.createElement("b"), { className: "bowtie" }));
       const words = document.createElement("small");
       words.textContent = [o.paper || "box only", o.rib && "ribbon", o.bow && "bow"].filter(Boolean).join(" + ");
+      const worth = document.createElement("em");
+      worth.textContent = orderPoints(o);
+      words.appendChild(worth);
       el.append(bar, toy, gift, words);
       box.appendChild(el);
     }

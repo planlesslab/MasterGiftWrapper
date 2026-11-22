@@ -43,16 +43,27 @@ export const isSolid = (c, r) => tileAt(c, r) !== ".";
 // gap:  seconds between new orders at the start and at the end of the shift.
 // max:  most orders waiting at once.       pace: how early the harder orders arrive.
 // bounce: wrong presents come back to your hands instead of being lost.
+// penalty: points lost for a wrong present or a missed order.
 export const DIFFICULTY = {
-  easy:   { label: "Easy",   emoji: "🧸", taps: 3, life: 110, gap: [20, 13], max: 3, pace: 1.3, bounce: true },
-  normal: { label: "Normal", emoji: "🎁", taps: 4, life: 75,  gap: [16, 8.5], max: 5, pace: 1.0, bounce: false },
-  chaos:  { label: "Chaos",  emoji: "🔥", taps: 5, life: 52,  gap: [11, 5],  max: 6, pace: 0.7, bounce: false },
+  easy:   { label: "Easy",   emoji: "🧸", taps: 3, life: 110, gap: [20, 13], max: 3, pace: 1.3, bounce: true, penalty: 0 },
+  normal: { label: "Normal", emoji: "🎁", taps: 4, life: 75,  gap: [16, 8.5], max: 5, pace: 1.0, bounce: false, penalty: 5 },
+  chaos:  { label: "Chaos",  emoji: "🔥", taps: 5, life: 52,  gap: [11, 5],  max: 6, pace: 0.7, bounce: false, penalty: 5 },
 };
 // Fewer elves means orders arrive more slowly.
 const PLAYER_PACE = [1.6, 1.6, 1.15, 0.95, 0.8];
 
-export const POINTS_CORRECT = 10;
-export const POINTS_PERFECT = 5;
+// ---------- Scoring ----------
+// A present scores more for every step it needed:
+//   toy in a box 10 · wrapped 15 · with a ribbon or a bow 20 · with both 25
+export const POINTS_BASE = 10;
+export const POINTS_STEP = 5;
+// Extra for sending a present while more than half of its order's time is left.
+export const SPEED_TIP = 3;
+// Points lost for a wrong present or a missed order are set per difficulty ("penalty" above).
+
+const orderSteps = (o) => (o.paper ? 1 : 0) + (o.rib ? 1 : 0) + (o.bow ? 1 : 0);
+/** What an order is worth when it is made exactly right (before any speed tip). */
+export const orderPoints = (o) => POINTS_BASE + POINTS_STEP * orderSteps(o);
 
 // ---------- Items ----------
 // {k:"toy",v} {k:"box"} {k:"paper",v} {k:"ribbon"} {k:"bow"}
@@ -127,7 +138,8 @@ export function tickOrders(G, cfg, now, startAt, players, rnd = Math.random) {
     if (now >= G.o[id].exp) {
       delete G.o[id];
       G.missed++;
-      addFx(G, now, { k: "miss" });
+      G.score = Math.max(0, G.score - cfg.penalty);
+      addFx(G, now, { k: "miss", p: cfg.penalty });
       changed = true;
     }
   }
@@ -158,15 +170,18 @@ function dispatch(G, cfg, uid, gift, now, tile) {
   const exact = (o) => !!o.rib === !!gift.rib && !!o.bow === !!gift.bow;
   fits.sort((a, b) => (exact(b) - exact(a)) || (a.exp - b.exp));
   const o = fits[0];
-  const perfect = exact(o) && (o.rib || o.bow);
-  const pts = POINTS_CORRECT + (perfect ? POINTS_PERFECT : 0);
+  const isExact = exact(o);
+  const perfect = isExact && (o.rib || o.bow);
+  // Wrong, missing or extra decorations: you still get the points for the toy and the wrapping.
+  const fast = o.exp - now > (o.exp - o.at) / 2;
+  const pts = (isExact ? orderPoints(o) : POINTS_BASE + (o.paper ? POINTS_STEP : 0)) + (fast ? SPEED_TIP : 0);
   delete G.o[o.id];
   G.score += pts;
   G.served++;
   if (perfect) G.perfect++;
   const st = (G.st[uid] = G.st[uid] || { g: 0, p: 0 });
   st.g++; st.p += pts;
-  addFx(G, now, { k: "serve", uid, tile, p: pts, perfect: !!perfect, gift });
+  addFx(G, now, { k: "serve", uid, tile, p: pts, perfect: !!perfect, fast, off: !isExact, gift });
   return "serve";
 }
 
@@ -195,8 +210,8 @@ export function applyAction(G, cfg, uid, tile, now) {
     if (held?.k !== "gift") return no();
     const res = dispatch(G, cfg, uid, held, now, tile);
     if (res === "serve") { delete G.h[uid]; return res; }
-    if (!cfg.bounce) { delete G.h[uid]; G.wrong++; }
-    return fx("wrong", { why: res });
+    if (!cfg.bounce) { delete G.h[uid]; G.wrong++; G.score = Math.max(0, G.score - cfg.penalty); }
+    return fx("wrong", { why: res, p: cfg.bounce ? 0 : cfg.penalty });
   }
 
   if (type === "X") {

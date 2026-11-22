@@ -257,7 +257,8 @@ input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(52, 196, 11
 .order.late { animation: shake 0.4s ease-in-out infinite; }
 @keyframes shake { 25% { transform: rotate(-2deg); } 75% { transform: rotate(2deg); } }
 .order-toy { font-size: 26px; line-height: 1; }
-.order small { grid-column: 1 / -1; font-size: 10.5px; font-weight: 700; text-transform: capitalize; white-space: nowrap; opacity: 0.75; margin-top: 2px; }
+.order em { display: inline-block; font-style: normal; font-weight: 800; line-height: 1; color: #6b4000; background: #ffcf4d; border-radius: 999px; padding: 2px 6px; margin-left: 5px; }
+.order small { grid-column: 1 / -1; font-size: 10.5px; font-weight: 700; text-transform: capitalize; white-space: nowrap; color: rgba(59, 36, 21, 0.8); margin-top: 3px; }
 /* mini picture of the finished present */
 .gp { position: relative; width: 26px; height: 24px; border-radius: 4px; margin-top: 5px; box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.15); }
 .gp.plain { background: #c89a62; border: 2px dashed #8a5a36; box-shadow: none; }
