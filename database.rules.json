@@ -1,0 +1,31 @@
+{
+  "rules": {
+    "giftRooms": {
+      "$code": {
+        ".read": "auth != null",
+        ".write": "auth != null && ((!data.exists() && newData.child('hostId').val() === auth.uid) || (data.exists() && data.child('hostId').val() === auth.uid))",
+        ".validate": "$code.matches(/^[A-Z]{4}$/)",
+
+        "hostId": {
+          ".write": "auth != null && newData.val() === auth.uid && data.parent().child('players/' + auth.uid + '/online').val() === true && data.parent().child('players/' + data.val() + '/online').val() !== true"
+        },
+
+        "players": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && data.parent().parent().child('hostId').exists()",
+            "name": { ".validate": "newData.isString() && newData.val().length > 0 && newData.val().length <= 16" },
+            "pos": {
+              "x": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 15" },
+              "z": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() <= 10" },
+              "r": { ".validate": "newData.isNumber()" }
+            },
+            "act": {
+              "n": { ".validate": "newData.isNumber()" },
+              "t": { ".validate": "newData.isNumber() && newData.val() >= 0 && newData.val() < 150" }
+            }
+          }
+        }
+      }
+    }
+  }
+}
