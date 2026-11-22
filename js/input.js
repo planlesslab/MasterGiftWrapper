@@ -47,6 +47,8 @@ export class Input {
   moveStick(e) {
     const max = this.stick.clientWidth * 0.36;
     let dx = e.clientX - this.touch.ox, dy = e.clientY - this.touch.oy;
+    // When the game is drawn on its side (phone held upright), turn the drag to match.
+    if (this.rotated) [dx, dy] = [dy, -dx];
     const len = Math.hypot(dx, dy);
     if (len > max) { dx *= max / len; dy *= max / len; }
     this.knob.style.transform = `translate(${dx}px, ${dy}px)`;

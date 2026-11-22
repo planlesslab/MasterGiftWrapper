@@ -35,7 +35,7 @@ When the timer reaches zero nothing more can be dispatched. The team score, and 
 
 | | Move | Action |
 | --- | --- | --- |
-| Touch | Joystick (bottom left) | Round button (bottom right). Its label tells you what a press will do. |
+| Touch (hold the phone sideways) | Joystick (bottom left) | Round button (bottom right). Its label tells you what a press will do. |
 | Keyboard | Arrow keys or WASD | Space (or E / Enter) |
 
 ## Try it right now (no setup)
@@ -88,7 +88,8 @@ Then on GitHub: **Settings → Pages → Branch: main / root → Save**. The gam
 - **Invite links containing `&local`** were made in demo mode. Once the config is live, share a fresh link.
 - **"Couldn't connect to the game server"**: check that Anonymous sign-in is enabled and that your `github.io` address is in the authorized domains.
 - **"Couldn't create a room"**: the database rules haven't been published, or the `giftRooms` block is missing.
-- **Small view on a phone**: turn the phone sideways.
+- **Phones play in landscape.** If a phone is held upright, the game is drawn sideways so that turning the phone puts it the right way up. This also works when the phone's rotation lock is on.
+- **Slow or jerky on an old phone**: the game lowers its picture quality by itself after a few seconds. Adding `&lq` to the address starts it in the lightest mode.
 
 ## Tweaking the game
 

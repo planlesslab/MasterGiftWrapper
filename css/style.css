@@ -217,7 +217,7 @@ input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(52, 196, 11
 .player-list .me { color: var(--gold); }
 
 /* ---------- Game ---------- */
-.view.game { position: fixed; inset: 0; padding: 0; gap: 0; z-index: 20; touch-action: none; user-select: none; -webkit-user-select: none; background: #2a1810; animation: none; }
+.view.game { container-type: size; position: fixed; inset: 0; padding: 0; gap: 0; z-index: 20; touch-action: none; user-select: none; -webkit-user-select: none; background: #2a1810; animation: none; }
 .stage { position: absolute; inset: 0; }
 .stage canvas.workshop3d { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
@@ -285,9 +285,9 @@ input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(52, 196, 11
 @keyframes floatup { from { opacity: 0; margin-top: 10px; scale: 0.6; } 15% { opacity: 1; scale: 1.15; } 30% { scale: 1; } to { opacity: 0; margin-top: -70px; } }
 
 .hint {
-  position: absolute; left: 50%; transform: translateX(-50%);
+  position: absolute; left: 50%; transform: translateX(-50%); width: max-content;
   bottom: calc(env(safe-area-inset-bottom) + 14px);
-  max-width: 60vw; text-align: center;
+  max-width: 60%; text-align: center;
   background: rgba(30, 16, 10, 0.72); border: 1px solid var(--edge); border-radius: 999px;
   padding: 7px 16px; font-size: 14px; font-weight: 600; color: var(--muted); z-index: 3; pointer-events: none;
 }
@@ -295,8 +295,7 @@ input:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(52, 196, 11
 .hint.do { color: #2a1810; background: var(--gold); border-color: #fff3c4; }
 body:not(.touch) .hint.do::before { content: "Space  ·  "; opacity: 0.7; }
 body.touch .hint.do { display: none; }
-@media (orientation: portrait) { body.touch .hint { bottom: calc(env(safe-area-inset-bottom) + 176px); max-width: 86vw; } }
-@media (orientation: landscape) { body.touch .hint { max-width: calc(100vw - 340px); } }
+body.touch .hint { max-width: calc(100% - 340px); }
 
 .controls { position: absolute; inset: 0; z-index: 3; pointer-events: none; }
 body:not(.touch) .controls { display: none; }
@@ -333,14 +332,14 @@ body:not(.touch) .controls { display: none; }
 .countdown.pop { animation: pop 0.9s ease-out; }
 @keyframes pop { from { transform: scale(1.6); opacity: 0; } 30% { opacity: 1; } to { transform: scale(1); } }
 
-@media (max-height: 480px) {
+@container (max-height: 480px) {
   .pill { font-size: 16px; padding: 6px 11px; }
   .order { padding: 7px 8px 3px; } .order-toy { font-size: 20px; } .order small { font-size: 9.5px; }
   .gp { width: 21px; height: 19px; }
   .stick { width: 110px; height: 110px; } .action { width: 94px; height: 94px; font-size: 15px; }
   .orders { min-height: 50px; }
 }
-@media (max-width: 520px) {
+@container (max-width: 520px) {
   .hud { flex-wrap: wrap; }
   .orders { order: 3; flex-basis: 100%; }
   .pill.time { margin-left: auto; }
@@ -426,10 +425,45 @@ h2 { margin: 0; }
 body:not([data-view="home"]) .pl-head,
 body:not([data-view="home"]) .pl-foot,
 body.invite .pl-head { display: none; }
-body[data-view="game"] .pl-nav { display: none; }
+/* During play on a computer the site nav stays, and the game sits just below it.
+   On phones the nav hides so the game gets the whole screen. */
+body[data-view="game"]:not(.touch) .view.game { top: var(--planless-nav-h, 0px); }
+body.touch[data-view="game"] #planless-nav { display: none; }
 body[data-view="game"] { overflow: hidden; }
 /* The header already shows the name, so hide the game's own big logo there. */
 body[data-view="home"]:not(.invite) #view-home .logo,
 body[data-view="home"]:not(.invite) #view-home .tagline { display: none; }
 /* The nav is slightly see-through by design; over this game's dark scenery that turns it grey, so make it solid here. */
 body .pl-nav { background: #eef0ff; }
+#mode-banner { position: relative; z-index: 2; }
+body[data-view="game"] #mode-banner { display: none; }
+
+/* ---------- Warm glow over the workshop ---------- */
+.vignette {
+  position: absolute; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 50% 45%, rgba(255, 190, 110, 0.10) 0%, rgba(255, 170, 90, 0.04) 45%, rgba(40, 14, 4, 0.55) 100%);
+  mix-blend-mode: normal;
+}
+
+/* ---------- Phones: always landscape ---------- */
+/* Held upright, the game is drawn on its side so turning the phone puts it the right way up. */
+body.rotated .view.game {
+  inset: auto; top: 0; left: 0;
+  width: 100vh; height: 100vw; width: 100dvh; height: 100dvw;
+  transform-origin: top left;
+  transform: rotate(90deg) translateY(-100%);
+}
+body.rotated .hud { top: 8px; left: calc(env(safe-area-inset-top) + 10px); right: calc(env(safe-area-inset-bottom) + 10px); }
+body.rotated .stick { left: calc(env(safe-area-inset-top) + 22px); bottom: 22px; }
+body.rotated .action { right: calc(env(safe-area-inset-bottom) + 22px); bottom: 30px; }
+body.rotated .hint, body.rotated .spectate { bottom: 14px; }
+.rotate-tip {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; pointer-events: none;
+  background: rgba(30, 16, 10, 0.85); border: 1px solid var(--edge); border-radius: 18px;
+  padding: 14px 22px; font-weight: 800; font-size: 20px; white-space: nowrap;
+  animation: tip 6s ease forwards;
+}
+.rotate-tip span { display: inline-block; animation: turn 1.5s ease-in-out infinite; }
+@keyframes turn { 0%, 30% { transform: rotate(0); } 70%, 100% { transform: rotate(-90deg); } }
+@keyframes tip { 0%, 80% { opacity: 1; } 100% { opacity: 0; } }

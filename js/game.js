@@ -80,6 +80,7 @@ export class Game {
     // The order tickets can wrap onto a second row on narrow phones.
     this.hudWatch = "ResizeObserver" in window ? new ResizeObserver(this.onLayout) : null;
     this.hudWatch?.observe($("hud"));
+    try { screen.orientation?.lock?.("landscape")?.catch?.(() => {}); } catch { /* only some phones allow this */ }
 
     this.prev = performance.now();
     const loop = (t) => {
@@ -99,9 +100,19 @@ export class Game {
   live() { const n = this.now(); return n >= this.room.startAt && n < this.room.endsAt; }
 
   layout() {
-    const touch = document.body.classList.contains("touch");
-    const portrait = innerHeight > innerWidth * 1.15;
-    this.scene.setInsets($("hud").offsetHeight + 8, touch && portrait && this.playing ? 190 : 14);
+    // Phones play in landscape. If the phone is held upright (or its rotation is locked),
+    // the whole game is turned on its side so that turning the phone makes it right.
+    const coarse = document.body.classList.contains("touch") || matchMedia("(pointer: coarse)").matches;
+    const rotated = coarse && innerHeight > innerWidth;
+    document.body.classList.toggle("rotated", rotated);
+    this.input.rotated = rotated;
+    if (rotated && !this.tipShown) {
+      this.tipShown = true;
+      $("rotate-tip").hidden = false;
+      setTimeout(() => ($("rotate-tip").hidden = true), 6000);
+    }
+    if (!rotated) $("rotate-tip").hidden = true;
+    this.scene.setInsets(Math.round($("hud").offsetHeight * 0.6), 10);
   }
 
   // ---------- room updates ----------
@@ -211,8 +222,9 @@ export class Game {
     const a = this.input.axis();
     if (!a.x && !a.y) return;
     // Screen directions -> workshop directions (the view turns sideways on tall phones).
-    const dx = this.scene.portrait ? a.y : a.x;
-    const dz = this.scene.portrait ? a.x : -a.y;
+    const cos = Math.cos(this.scene.yaw), sin = Math.sin(this.scene.yaw);
+    const dx = a.x * cos - a.y * sin;
+    const dz = -a.x * sin - a.y * cos;
     const m = this.me;
     m.r = Math.atan2(dx, dz);
     // Small steps, so a slow phone can't skip an elf through a worktop.
@@ -329,7 +341,7 @@ export class Game {
     const el = document.createElement("div");
     el.className = `popup ${cls}`;
     el.textContent = text;
-    el.style.left = Math.max(70, Math.min(innerWidth - 70, p.x)) + "px";
+    el.style.left = Math.max(70, Math.min($("stage").clientWidth - 70, p.x)) + "px";
     el.style.top = Math.max(90, p.y) + "px";
     $("popups").appendChild(el);
     setTimeout(() => el.remove(), 1500);
@@ -381,5 +393,7 @@ export class Game {
     this.scene.destroy();
     $("countdown").hidden = true;
     $("countdown").classList.remove("small");
+    $("rotate-tip").hidden = true;
+    document.body.classList.remove("rotated");
   }
 }
