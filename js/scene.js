@@ -14,8 +14,9 @@ export function supportsWebGL() {
 // Read once at page load, because the address changes when you enter a room.
 const FLAGS = new URLSearchParams(location.search);
 const TOP = 0.78; // worktop height
-const CAMERA_YAW = 0.3;   // how far the view is turned (the isometric look)
-const CAMERA_TILT = 0.74; // how high the camera looks down from
+// The view. ?yaw= and ?tilt= in the address let you try other angles.
+const CAMERA_YAW = FLAGS.has("yaw") ? +FLAGS.get("yaw") : 0;      // how far the view is turned sideways
+const CAMERA_TILT = FLAGS.has("tilt") ? +FLAGS.get("tilt") : 0.74; // how steeply the camera looks down
 export const ELF_COLOURS = ["#6cb8ee", "#ff9db4", "#ffd84f", "#a6e36a"];
 const HAT_COLOURS = ["#2f9e4f", "#d8343a", "#d8343a", "#2f9e4f"];
 const CARD = "#c89a62";
